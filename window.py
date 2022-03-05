@@ -5,7 +5,8 @@ from tkinter.messagebox import showinfo
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
-from k_means_clustering import find_clusters, print_plot
+from clustering import find_clusters_c_means
+from clustering import find_clusters_k_means, print_plot
 from principal_component_analysis import get_scores_pca
 from spotify import get_spotipy, load_config, get_features_for_playlist
 
@@ -99,7 +100,7 @@ def get_dataframe():
 
 
 def perform_clusterization():
-    global scores_pca, n_comps, df_x, track_info, df_seg_pca_kmeans, df, epsilon, iterations, min_variance, clusters_number
+    global scores_pca, n_comps, df_x, track_info, df_seg_pca_kmeans, df, epsilon, iterations, min_variance, clusters_number, m, min_prob
     min_var = 0.8
     if is_number(min_variance.get()):
         min_var = float(min_variance.get())
@@ -114,7 +115,15 @@ def perform_clusterization():
     if is_number(clusters.get()):
         clusters_number = int(clusters.get())
     if algorithm.get() == "Algorytm K-Średnich":
-        df_seg_pca_kmeans = find_clusters(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
+        df_seg_pca_kmeans = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
+    else:
+        m_value = 2
+        if is_number(m.get()):
+            m_value = int(m.get())
+        prob_value = 0.2
+        if is_number(min_prob.get()):
+            prob_value = float(min_prob.get())
+        df_seg_pca_kmeans = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x, n_comps, prob_value)
 
 
 def create_playlist_combobox(text, container):
@@ -262,7 +271,7 @@ def display_window():
     root.title('Paweł Lurka - C-means and K-means Spotify music clustering')
 
     window_width = 1280
-    window_height = 900
+    window_height = 860
     min_width = 640
     min_height = 480
     max_width = 1920
