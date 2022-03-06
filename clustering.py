@@ -31,9 +31,18 @@ def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_com
     cluster_affiliation = []
     for i in range(len(scores_pca)):
         centers_array = []
-        for j in range(centers):
-            if u[j][i] >= min_prob:
-                centers_array.append(j)
+        if min_prob == 0:
+            local_max_prob = 0
+            affiliated_cluster = 0
+            for j in range(centers):
+                local_max_prob = max(local_max_prob, u[j][i])
+                if local_max_prob == u[j][i]:
+                    affiliated_cluster = j
+            centers_array.append(affiliated_cluster)
+        else:
+            for j in range(centers):
+                if u[j][i] >= min_prob:
+                    centers_array.append(j)
         cluster_affiliation.append(centers_array)
 
     df_seg_pca['Cluster'] = cluster_affiliation
