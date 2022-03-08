@@ -1,6 +1,6 @@
 from statistics import mean
 from joblib import Parallel, delayed
-
+from joblib._memmapping_reducer import has_shareable_memory
 
 
 def calc_dunn_index(points, clusters, linkage, diameter):
@@ -11,14 +11,17 @@ def calc_dunn_index(points, clusters, linkage, diameter):
     selected_diameter = diameter_algorithms[diameter]
     linkage_array = []
     diameter_array = []
-    for c in clusters:
-        for k in clusters:
-            if (c == k).all() or len(get_points_in_cluster(points, find_cluster_index(clusters, c))) == 0\
-                    or len(get_points_in_cluster(points, find_cluster_index(clusters, k))) == 0:
-                continue
-            linkage_array.append(selected_linkage(get_points_in_cluster(points, find_cluster_index(clusters, c)),
-                                                  get_points_in_cluster(points, find_cluster_index(clusters, k)), c, k))
-            diameter_array.append(selected_diameter(get_points_in_cluster(points, find_cluster_index(clusters, c)), c))
+
+    def calculate_distances(c, k):
+        if (c == k).all() or len(get_points_in_cluster(points, find_cluster_index(clusters, c))) == 0 \
+                or len(get_points_in_cluster(points, find_cluster_index(clusters, k))) == 0:
+            return
+        linkage_array.append(selected_linkage(get_points_in_cluster(points, find_cluster_index(clusters, c)),
+                                              get_points_in_cluster(points, find_cluster_index(clusters, k)), c, k))
+        diameter_array.append(selected_diameter(get_points_in_cluster(points, find_cluster_index(clusters, c)), c))
+
+    Parallel(n_jobs=4, require='sharedmem')(
+        delayed(has_shareable_memory)(calculate_distances(c, k)) for c in clusters for k in clusters)
 
     return min(linkage_array) / max(diameter_array)
 
