@@ -12,12 +12,13 @@ from spotify import get_spotipy, load_config, get_features_for_playlist
 
 global algorithm, playlist_combobox, clusters, epsilon, iterations, m, min_prob, plot_type, x_var, y_var, \
     new_playlist_name, add_playlist_button, playlists, playlists_id, min_variance, selected_value, i, \
-    spoti_playlists, user_config, spotipy_instance, df, scores_pca, n_comps, df_x, track_info, df_seg_pca_kmeans, \
-    plot_canvas, canvas_window, plot_ax, selected_cluster, clusters_number, min_tol, max_iter, m_value, prob_value
+    spoti_playlists, user_config, spotipy_instance, df, scores_pca, n_comps, df_x, track_info, df_seg_pca, \
+    plot_canvas, canvas_window, plot_ax, selected_cluster, clusters_number, min_tol, max_iter, m_value, prob_value, \
+    dunn_value
 
 
 def create_plot(window):
-    global df_seg_pca_kmeans, canvas_window, plot_canvas, plot_ax
+    global df_seg_pca, canvas_window, plot_canvas, plot_ax
     canvas_window = window
     label = ttk.Label(window, text="Wykres")
     label.pack(fill=tk.X, padx=5, pady=5)
@@ -103,14 +104,16 @@ def get_dataframe():
 
 
 def perform_clusterization():
-    global scores_pca, n_comps, df_x, track_info, df_seg_pca_kmeans, df, epsilon, iterations, min_variance, \
+    global scores_pca, n_comps, df_x, track_info, df_seg_pca, df, epsilon, iterations, min_variance, \
         clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value
     set_fields()
     if algorithm.get() == "Algorytm K-Średnich":
-        df_seg_pca_kmeans = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
+        df_seg_pca = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
     else:
-        df_seg_pca_kmeans = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
-                                                  n_comps, prob_value)
+        df_seg_pca = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
+                                           n_comps, prob_value)
+
+    dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
     print_playlist_features()
 
 
@@ -134,14 +137,14 @@ def set_fields():
     m_value = 2
     if is_number(m.get()):
         m_value = int(m.get())
-    prob_value = 0.2
+    prob_value = 0
     if is_number(min_prob.get()):
         prob_value = float(min_prob.get())
 
 
 # bind the selected value changes
 def print_playlist_features():
-    global df_seg_pca_kmeans, plot_canvas, plot_ax, selected_cluster
+    global df_seg_pca, plot_canvas, plot_ax, selected_cluster
     values = []
     for i in range(0, clusters_number):
         values.append(str(i))
@@ -149,7 +152,7 @@ def print_playlist_features():
     selected_cluster['values'] = values
 
     plot_ax.clear()
-    print_plot(df_seg_pca_kmeans, str.lower(x_var.get()), str.lower(y_var.get()), plot_ax, selected_cluster.get())
+    print_plot(df_seg_pca, str.lower(x_var.get()), str.lower(y_var.get()), plot_ax, selected_cluster.get())
     plot_canvas.draw()
 
 
@@ -195,7 +198,7 @@ def optimize_clusters():
 
 
 def create_parameters_frame(container, height, width):
-    global algorithm, clusters, epsilon, iterations, m, min_prob, min_variance, playlist_combobox
+    global algorithm, clusters, epsilon, iterations, m, min_prob, min_variance, playlist_combobox, dunn_value
     frame = create_frame(container, height, width)
 
     algorithm = create_combobox("Wybierz algorytm klasteryzacji:", frame,
@@ -217,14 +220,23 @@ def create_parameters_frame(container, height, width):
     epsilon = create_textbox("Epsilon", frame)
     epsilon.pack(fill=tk.X, padx=5, pady=5)
 
-    lf = ttk.LabelFrame(frame, text='Tylko C-Średnich')
-    lf.pack(fill=tk.X, padx=5, pady=5)
+    lf_c = ttk.LabelFrame(frame, text='Tylko C-Średnich')
+    lf_c.pack(fill=tk.X, padx=5, pady=5)
 
-    m = create_textbox("m", lf)
+    m = create_textbox("m", lf_c)
     m.pack(fill=tk.X, padx=5, pady=5)
 
-    min_prob = create_textbox("Minimalne prawdopodobieństwo przynależności", lf)
+    min_prob = create_textbox("Minimalne prawdopodobieństwo przynależności", lf_c)
     min_prob.pack(fill=tk.X, padx=5, pady=5)
+
+    lf_indices = ttk.LabelFrame(frame, text='Indeksy oceny')
+    lf_indices.pack(fill=tk.X, padx=5, pady=5)
+
+    dunn_label = ttk.Label(lf_indices, text="Indeks Dunna")
+    dunn_label.pack(fill=tk.X, padx=5, pady=5)
+
+    dunn_value = ttk.Label(lf_indices, text="...")
+    dunn_value.pack(fill=tk.X, padx=5, pady=5)
 
     button_frame = ttk.Frame(frame)
 
@@ -262,7 +274,7 @@ def create_parameters_frame(container, height, width):
 
 def refresh_plot(event):
     plot_ax.clear()
-    print_plot(df_seg_pca_kmeans, str.lower(x_var.get()), str.lower(y_var.get()), plot_ax, selected_cluster.get())
+    print_plot(df_seg_pca, str.lower(x_var.get()), str.lower(y_var.get()), plot_ax, selected_cluster.get())
     # plot_canvas = FigureCanvasTkAgg(fig, master=canvas_window)
     plot_canvas.draw()
 

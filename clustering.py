@@ -2,6 +2,8 @@ from sklearn.cluster import KMeans
 import skfuzzy as fuzz
 import pandas as pd
 
+from dunn_index import calc_dunn_index
+
 
 def create_df_seg_pca(df_x, n_comps, scores_pca):
     df_seg_pca_kmeans = pd.concat([df_x.reset_index(drop=True), pd.DataFrame(scores_pca)], axis=1)
@@ -18,6 +20,7 @@ def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsil
     for i in kmeans_pca.labels_:
         cluster_affiliation.append([i])
     df_seg_pca['Cluster'] = cluster_affiliation
+    df_seg_pca['Dunn'] = calc_dunn_index(df_seg_pca.values[:, 9:len(df_seg_pca.values)], kmeans_pca.cluster_centers_, 0, 0)
     print(df_seg_pca.head())
     return df_seg_pca
 
@@ -46,6 +49,7 @@ def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_com
         cluster_affiliation.append(centers_array)
 
     df_seg_pca['Cluster'] = cluster_affiliation
+    df_seg_pca['Dunn'] = calc_dunn_index(df_seg_pca.values[:, 9:len(df_seg_pca.values)], cntr, 0, 0)
     print(df_seg_pca.head())
     return df_seg_pca
 
