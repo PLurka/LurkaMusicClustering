@@ -1,4 +1,6 @@
 import tkinter as tk
+from datetime import datetime
+
 import pandas as pd
 from tkinter import ttk
 from matplotlib.figure import Figure
@@ -14,7 +16,7 @@ global algorithm, playlist_combobox, clusters, epsilon, iterations, m, min_prob,
     new_playlist_name, add_playlist_button, playlists, playlists_id, min_variance, selected_value, i, \
     spoti_playlists, user_config, spotipy_instance, df, scores_pca, n_comps, df_x, track_info, df_seg_pca, \
     plot_canvas, canvas_window, plot_ax, selected_cluster, clusters_number, min_tol, max_iter, m_value, prob_value, \
-    dunn_value
+    dunn_value, coefficient_value, entropy_value, silhouette_value
 
 
 def create_plot(window):
@@ -105,8 +107,10 @@ def get_dataframe():
 
 def perform_clusterization():
     global scores_pca, n_comps, df_x, track_info, df_seg_pca, df, epsilon, iterations, min_variance, \
-        clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value
+        clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value, coefficient_value, entropy_value, \
+        silhouette_value
     set_fields()
+    print(str(datetime.now()) + " Starting clustering...")
     if algorithm.get() == "Algorytm K-Średnich":
         df_seg_pca = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
     else:
@@ -114,6 +118,9 @@ def perform_clusterization():
                                            n_comps, prob_value)
 
     dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
+    coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
+    entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
+    silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
     print_playlist_features()
 
 
@@ -136,7 +143,7 @@ def set_fields():
         clusters_number = int(clusters.get())
     m_value = 2
     if is_number(m.get()):
-        m_value = int(m.get())
+        m_value = float(m.get())
     prob_value = 0
     if is_number(min_prob.get()):
         prob_value = float(min_prob.get())
@@ -198,7 +205,8 @@ def optimize_clusters():
 
 
 def create_parameters_frame(container, height, width):
-    global algorithm, clusters, epsilon, iterations, m, min_prob, min_variance, playlist_combobox, dunn_value
+    global algorithm, clusters, epsilon, iterations, m, min_prob, min_variance, playlist_combobox, dunn_value, \
+        coefficient_value, entropy_value, silhouette_value
     frame = create_frame(container, height, width)
 
     algorithm = create_combobox("Wybierz algorytm klasteryzacji:", frame,
@@ -232,11 +240,36 @@ def create_parameters_frame(container, height, width):
     lf_indices = ttk.LabelFrame(frame, text='Indeksy oceny')
     lf_indices.pack(fill=tk.X, padx=5, pady=5)
 
+    lf_indices.columnconfigure(0, weight=1)
+    lf_indices.columnconfigure(1, weight=1)
+    lf_indices.columnconfigure(2, weight=1)
+    lf_indices.columnconfigure(3, weight=1)
+    lf_indices.rowconfigure(0, weight=1)
+    lf_indices.rowconfigure(1, weight=1)
+
     dunn_label = ttk.Label(lf_indices, text="Indeks Dunna")
-    dunn_label.pack(fill=tk.X, padx=5, pady=5)
+    dunn_label.grid(column=0, row=0)
 
     dunn_value = ttk.Label(lf_indices, text="...")
-    dunn_value.pack(fill=tk.X, padx=5, pady=5)
+    dunn_value.grid(column=0, row=1)
+
+    coefficient_label = ttk.Label(lf_indices, text="Wskaźnik podziału")
+    coefficient_label.grid(column=1, row=0)
+
+    coefficient_value = ttk.Label(lf_indices, text="...")
+    coefficient_value.grid(column=1, row=1)
+
+    entropy_label = ttk.Label(lf_indices, text="Wskaźnik entropii")
+    entropy_label.grid(column=2, row=0)
+
+    entropy_value = ttk.Label(lf_indices, text="...")
+    entropy_value.grid(column=2, row=1)
+
+    silhouette_label = ttk.Label(lf_indices, text="Indeks sylwetki")
+    silhouette_label.grid(column=3, row=0)
+
+    silhouette_value = ttk.Label(lf_indices, text="...")
+    silhouette_value.grid(column=3, row=1)
 
     button_frame = ttk.Frame(frame)
 

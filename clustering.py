@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from sklearn.cluster import KMeans
 import skfuzzy as fuzz
 import pandas as pd
 
+from bezdek_index import calc_bezdek_index
 from dunn_index import calc_dunn_index
+from silhouette_index import calc_sil_index
 
 
 def create_df_seg_pca(df_x, n_comps, scores_pca):
@@ -15,12 +19,26 @@ def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsil
     kmeans_pca = KMeans(n_clusters=n_clusters, init='random', max_iter=max_iter, algorithm='full', tol=epsilon,
                         n_init=1)
     kmeans_pca.fit(scores_pca)
+    print(str(datetime.now()) + " Done clustering!")
     df_seg_pca = create_df_seg_pca(df_x, n_comps, scores_pca)
     cluster_affiliation = []
     for i in kmeans_pca.labels_:
         cluster_affiliation.append([i])
     df_seg_pca['Cluster'] = cluster_affiliation
-    df_seg_pca['Dunn'] = calc_dunn_index(df_seg_pca.values[:, 9:len(df_seg_pca.values)], kmeans_pca.cluster_centers_, 0, 0)
+
+    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values)]
+    coords_assign_pca_for_sil = coords_assign_pca.copy()
+
+    df_seg_pca['Dunn'] = calc_dunn_index(coords_assign_pca, kmeans_pca.cluster_centers_, 0, 0)
+    print(str(datetime.now()) + " Done Dunn Index!")
+    u = [[0 for i in range(len(cluster_affiliation))] for j in range(n_clusters)]
+    for i in range(len(cluster_affiliation)):
+        u[cluster_affiliation[i][0]][i] = 1
+    df_seg_pca['Coefficient'], df_seg_pca['Entropy'] = 1, 0
+    print(str(datetime.now()) + " Done entropy and coefficient value!")
+    df_seg_pca['Silhouette'] = calc_sil_index(coords_assign_pca_for_sil, u)
+    print(str(datetime.now()) + " Done Silhouette Index!")
+
     print(df_seg_pca.head())
     return df_seg_pca
 
@@ -28,7 +46,7 @@ def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsil
 def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_comps, min_prob):
     cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
         scores_pca.T, centers, m, error=epsilon, maxiter=max_iter)
-
+    print(str(datetime.now()) + " Done clustering!")
     df_seg_pca = pd.concat([df_x.reset_index(drop=True), pd.DataFrame(scores_pca)], axis=1)
     df_seg_pca.columns.values[(-1 * n_comps):] = ["Component " + str(i + 1) for i in range(n_comps)]
     cluster_affiliation = []
@@ -49,7 +67,16 @@ def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_com
         cluster_affiliation.append(centers_array)
 
     df_seg_pca['Cluster'] = cluster_affiliation
-    df_seg_pca['Dunn'] = calc_dunn_index(df_seg_pca.values[:, 9:len(df_seg_pca.values)], cntr, 0, 0)
+
+    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values)]
+    coords_assign_pca_for_sil = coords_assign_pca.copy()
+
+    df_seg_pca['Dunn'] = calc_dunn_index(coords_assign_pca, cntr, 0, 0)
+    print(str(datetime.now()) + " Done Dunn Index!")
+    df_seg_pca['Coefficient'], df_seg_pca['Entropy'] = calc_bezdek_index(u, None)
+    print(str(datetime.now()) + " Done entropy and coefficient value!")
+    df_seg_pca['Silhouette'] = calc_sil_index(coords_assign_pca_for_sil, u)
+    print(str(datetime.now()) + " Done Silhouette Index!")
     print(df_seg_pca.head())
     return df_seg_pca
 
