@@ -26,7 +26,7 @@ def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsil
         cluster_affiliation.append([i])
     df_seg_pca['Cluster'] = cluster_affiliation
 
-    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values)]
+    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
     coords_assign_pca_for_sil = coords_assign_pca.copy()
 
     df_seg_pca['Dunn'] = calc_dunn_index(coords_assign_pca, kmeans_pca.cluster_centers_, 0, 0)
@@ -68,7 +68,7 @@ def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_com
 
     df_seg_pca['Cluster'] = cluster_affiliation
 
-    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values)]
+    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
     coords_assign_pca_for_sil = coords_assign_pca.copy()
 
     df_seg_pca['Dunn'] = calc_dunn_index(coords_assign_pca, cntr, 0, 0)
