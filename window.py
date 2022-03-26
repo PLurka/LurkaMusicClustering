@@ -145,7 +145,6 @@ def perform_clusterization(calculate_indices):
             f.write("\nCoefficient Value: " + str(df_seg_pca['Coefficient'][0]))
             f.write("\nEntropy Value: " + str(df_seg_pca['Entropy'][0]))
 
-
     print_playlist_features()
     return values_to_serialize
 
