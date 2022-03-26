@@ -112,26 +112,31 @@ def get_dataframe():
     print(df[playlist_combobox.get()])
 
 
-def perform_clusterization():
+def perform_clusterization_with_indices():
+    set_fields()
+    return perform_clusterization(True)
+
+
+def perform_clusterization(calculate_indices):
     global scores_pca, n_comps, df_x, track_info, df_seg_pca, df, epsilon, iterations, min_variance, \
         clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value, coefficient_value, entropy_value, \
         silhouette_value
-    set_fields()
     print(str(datetime.now()) + " Starting clustering...")
     if algorithm.get() == "Algorytm K-Średnich":
-        df_seg_pca, centers, u = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol)
+        df_seg_pca, centers, u = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
+                                                       calculate_indices)
     else:
         df_seg_pca, centers, u = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
-                                           n_comps, prob_value)
+                                           n_comps, prob_value, calculate_indices)
 
     coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
-    # dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
-    # coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
-    # entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
-    # silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
+    if calculate_indices:
+        dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
+        coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
+        entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
+        silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
+
     values_to_serialize = [df_seg_pca, centers, u, coords_assign_pca]
-    serialized = pickle.dumps(values_to_serialize)
-    deserialized = pickle.loads(serialized)
     print_playlist_features()
     return values_to_serialize
 
@@ -152,33 +157,17 @@ def find_closest_index(center, centers, already_chosen):
 def bootstrap():
     global bootstrap_iter, original_df, dunn_value
 
-    original_df = df.copy()
+    original_df = df[playlist_combobox.get()].copy()
+    set_fields()
     centers_array = []
     values_array = []
-    dunn_values = []
-    coefficient_values = []
-    entropy_values = []
-    silhouette_values = []
-
-    calculate_indices = []
-    for rand in range(int(bootstrap_ind.get())):
-        number = random.randrange(int(bootstrap_iter.get()))
-        while number in calculate_indices:
-            number = random.randrange(int(bootstrap_iter.get()))
-        calculate_indices.append(number)
 
     for iterator in range(int(bootstrap_iter.get())):
+        for o in range(len(original_df)):
+            df[playlist_combobox.get()] = original_df.sample(n=len(original_df), replace=True)
         print("Bootstrap iteration no: " + str(iterator))
-        values = perform_clusterization()
+        values = perform_clusterization(False)
         values_array.append(list(values))
-
-        if iterator in calculate_indices:
-            dunn_values.append(calc_dunn_index(values[3][:, 0:len(values[3][0]) - 2].copy(), values[1], 0, 0))
-            print(str(datetime.now()) + " Done Dunn Index!")
-            coefficient_values.append(values[0]['Coefficient'][0])
-            entropy_values.append(values[0]['Entropy'][0])
-            silhouette_values.append(calc_sil_index(values[3][:, 0:len(values[3][0]) - 2].copy(), values[2]))
-            print(str(datetime.now()) + " Done Silhouette Index!")
 
         if iterator == 0:
             centers_array.append(list(values[1]))
@@ -191,11 +180,7 @@ def bootstrap():
                 temp_centers.append(centers[closest_index])
                 already_chosen.append(closest_index)
             centers_array.append(temp_centers)
-
-    dunn_value.config(text=str(mean(dunn_values)))
-    coefficient_value.config(text=str(mean(coefficient_values)))
-    entropy_value.config(text=str(mean(entropy_values)))
-    silhouette_value.config(text=str(mean(silhouette_values)))
+        df[playlist_combobox.get()] = original_df.copy()
 
     # centra
     cluster_variances = []
@@ -364,20 +349,16 @@ def create_parameters_frame(container, height, width):
     bootstrap_frame.pack_propagate(0)
     bootstrap_frame.columnconfigure(0, weight=1)
     bootstrap_frame.columnconfigure(1, weight=1)
-    bootstrap_frame.columnconfigure(2, weight=1)
 
     bootstrap_iter = create_textbox("Ilość iteracji", bootstrap_frame)
     bootstrap_iter.grid(column=0, row=0)
-
-    bootstrap_ind = create_textbox("Liczba indeksowań", bootstrap_frame)
-    bootstrap_ind.grid(column=1, row=0)
 
     perform_bootstrap_button = ttk.Button(
         bootstrap_frame,
         text="Bootstrap",
         command=bootstrap
     )
-    perform_bootstrap_button.grid(column=2, row=0)
+    perform_bootstrap_button.grid(column=1, row=0)
 
     bootstrap_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -398,7 +379,7 @@ def create_parameters_frame(container, height, width):
     perform_clusterization_button = ttk.Button(
         button_frame,
         text="Klasteryzuj",
-        command=perform_clusterization
+        command=perform_clusterization_with_indices
     )
     perform_clusterization_button.grid(column=1, row=0)
 
