@@ -1,29 +1,26 @@
-import json
-import pickle
-import random
+import time
 import tkinter as tk
 from cmath import inf
 from datetime import datetime
 from statistics import variance, mean
+from tkinter import ttk
 
 import pandas as pd
-from tkinter import ttk
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.figure import Figure
 
 from clustering import find_clusters_c_means
 from clustering import find_clusters_k_means, print_plot
 from clusters_number_optimization import find_optimal_cluster_number
-from dunn_index import find_distance, calc_dunn_index
+from dunn_index import find_distance
 from principal_component_analysis import get_scores_pca
-from silhouette_index import calc_sil_index
 from spotify import get_spotipy, load_config, get_features_for_playlist
 
 global algorithm, playlist_combobox, clusters, epsilon, iterations, m, min_prob, plot_type, x_var, y_var, \
     new_playlist_name, add_playlist_button, playlists, playlists_id, min_variance, selected_value, i, \
     spoti_playlists, user_config, spotipy_instance, df, scores_pca, n_comps, df_x, track_info, df_seg_pca, \
     plot_canvas, canvas_window, plot_ax, selected_cluster, clusters_number, min_tol, max_iter, m_value, prob_value, \
-    dunn_value, coefficient_value, entropy_value, silhouette_value, original_df, bootstrap_iter, bootstrap_ind
+    dunn_value, coefficient_value, entropy_value, silhouette_value, original_df, bootstrap_iter, bootstrap_ind, min_var
 
 
 def create_plot(window):
@@ -123,20 +120,32 @@ def perform_clusterization(calculate_indices):
         silhouette_value
     print(str(datetime.now()) + " Starting clustering...")
     if algorithm.get() == "Algorytm K-Średnich":
-        df_seg_pca, centers, u = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
-                                                       calculate_indices)
+        df_seg_pca, centers, u, t = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
+                                                          calculate_indices)
     else:
-        df_seg_pca, centers, u = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
-                                           n_comps, prob_value, calculate_indices)
+        df_seg_pca, centers, u, t = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
+                                                          n_comps, prob_value, calculate_indices)
 
     coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
+    values_to_serialize = [df_seg_pca, centers, u, coords_assign_pca, t]
     if calculate_indices:
         dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
         coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
         entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
         silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
 
-    values_to_serialize = [df_seg_pca, centers, u, coords_assign_pca]
+        with open('E:/Studia/Magisterka/Magisterka/Aplikacja/LurkaMusicClustering/pomiary/list-'
+                  + playlist_combobox.get().replace("/", "-") + ' alg-' + algorithm.get()
+                  + ' k' + str(clusters_number) + ' var' + str(min_var).replace(".", ",") + ' iter' + str(max_iter)
+                  + ' e' + str(min_tol).replace(".", ",") + ' m' + str(m_value).replace(".", ",") + ' prob'
+                  + str(prob_value).replace(".", ",") + ' rep0' + ' '
+                  + str(datetime.now().strftime("%Y-%m-%d %H-%M-%S")) + '.txt', 'w') as f:
+            f.write("Dunn Index Value: " + str(df_seg_pca['Dunn'][0]))
+            f.write("\nSilhouette Index Value: " + str(df_seg_pca['Silhouette'][0]))
+            f.write("\nCoefficient Value: " + str(df_seg_pca['Coefficient'][0]))
+            f.write("\nEntropy Value: " + str(df_seg_pca['Entropy'][0]))
+
+
     print_playlist_features()
     return values_to_serialize
 
@@ -155,18 +164,21 @@ def find_closest_index(center, centers, already_chosen):
 
 
 def bootstrap():
-    global bootstrap_iter, original_df, dunn_value
+    global bootstrap_iter, original_df, dunn_value, clusters_number, min_var, max_iter, min_tol, m_value, prob_value, \
+        algorithm
 
     original_df = df[playlist_combobox.get()].copy()
     set_fields()
     centers_array = []
     values_array = []
+    times_array = []
 
     for iterator in range(int(bootstrap_iter.get())):
         for o in range(len(original_df)):
             df[playlist_combobox.get()] = original_df.sample(n=len(original_df), replace=True)
         print("Bootstrap iteration no: " + str(iterator))
         values = perform_clusterization(False)
+        times_array.append(values[4])
         values_array.append(list(values))
 
         if iterator == 0:
@@ -195,11 +207,23 @@ def bootstrap():
             dimension_variance = variance(dimension_values)
             dimension_variances.append(dimension_variance)
         cluster_variances.append(dimension_variances)
-    return centers_array
+
+    cluster_variances_string = str(cluster_variances).replace("],", "],\n")
+    cluster_variances_string += "\n"
+
+    with open('E:/Studia/Magisterka/Magisterka/Aplikacja/LurkaMusicClustering/pomiary/list-'
+              + playlist_combobox.get().replace("/", "-") + ' alg-' + algorithm.get()
+              + ' k' + str(clusters_number) + ' var' + str(min_var).replace(".", ",") + ' iter' + str(max_iter)
+              + ' e' + str(min_tol).replace(".", ",") + ' m' + str(m_value).replace(".", ",") + ' prob'
+              + str(prob_value).replace(".", ",") + ' rep' + bootstrap_iter.get() + ' '
+              + str(datetime.now().strftime("%Y-%m-%d %H-%M-%S")) + '.txt', 'w') as f:
+        f.write(cluster_variances_string)
+        f.write("Avg Time: " + str(mean(times_array)))
 
 
 def set_fields():
-    global scores_pca, n_comps, df_x, track_info, max_iter, min_tol, clusters_number, m_value, prob_value, df, epsilon, iterations, min_variance
+    global scores_pca, n_comps, df_x, track_info, max_iter, min_tol, clusters_number, m_value, prob_value, df, epsilon\
+        , iterations, min_variance, min_var
     min_var = 0.8
     if is_number(min_variance.get()):
         min_var = float(min_variance.get())

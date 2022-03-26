@@ -1,8 +1,9 @@
+import time
 from datetime import datetime
 
-from sklearn.cluster import KMeans
-import skfuzzy as fuzz
 import pandas as pd
+import skfuzzy as fuzz
+from sklearn.cluster import KMeans
 
 from bezdek_index import calc_bezdek_index
 from dunn_index import calc_dunn_index
@@ -18,7 +19,9 @@ def create_df_seg_pca(df_x, n_comps, scores_pca):
 def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsilon, calculate_indices):
     kmeans_pca = KMeans(n_clusters=n_clusters, init='random', max_iter=max_iter, algorithm='full', tol=epsilon,
                         n_init=1)
+    start_time = time.time()
     kmeans_pca.fit(scores_pca)
+    end_time = time.time()
     print(str(datetime.now()) + " Done clustering!")
     df_seg_pca = create_df_seg_pca(df_x, n_comps, scores_pca)
     cluster_affiliation = []
@@ -40,12 +43,14 @@ def find_clusters_k_means(n_clusters, scores_pca, df_x, n_comps, max_iter, epsil
         df_seg_pca['Silhouette'] = calc_sil_index(coords_assign_pca_for_sil, u)
         print(str(datetime.now()) + " Done Silhouette Index!")
 
-    return df_seg_pca, kmeans_pca.cluster_centers_, u
+    return df_seg_pca, kmeans_pca.cluster_centers_, u, end_time - start_time
 
 
 def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_comps, min_prob, calculate_indices):
+    start_time = time.time()
     cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
         scores_pca.T, centers, m, error=epsilon, maxiter=max_iter)
+    end_time = time.time()
     print(str(datetime.now()) + " Done clustering!")
     df_seg_pca = pd.concat([df_x.reset_index(drop=True), pd.DataFrame(scores_pca)], axis=1)
     df_seg_pca.columns.values[(-1 * n_comps):] = ["Component " + str(i + 1) for i in range(n_comps)]
@@ -77,7 +82,7 @@ def find_clusters_c_means(scores_pca, centers, m, epsilon, max_iter, df_x, n_com
         df_seg_pca['Silhouette'] = calc_sil_index(coords_assign_pca_for_sil, u)
         print(str(datetime.now()) + " Done Silhouette Index!")
 
-    return df_seg_pca, cntr, u
+    return df_seg_pca, cntr, u, end_time - start_time
 
 
 def print_plot(df_seg_pca_kmeans, component_no_1, component_no_2, plot_ax, selected_cluster):
