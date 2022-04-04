@@ -123,7 +123,7 @@ def perform_clusterization(calculate_indices):
     low = clusters_number
     high = clusters_number
     if clusters_number == -1 and calculate_indices:
-        split_cluster_number = clusters.get().split(str=":")
+        split_cluster_number = clusters.get().split(':')
         low = int(split_cluster_number[0])
         high = int(split_cluster_number[1])
     vts = []
