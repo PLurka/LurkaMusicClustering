@@ -118,36 +118,45 @@ def perform_clusterization_with_indices():
 def perform_clusterization(calculate_indices):
     global scores_pca, n_comps, df_x, track_info, df_seg_pca, df, epsilon, iterations, min_variance, \
         clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value, coefficient_value, entropy_value, \
-        silhouette_value, is_save_playlist
+        silhouette_value, is_save_playlist, clusters
     print(str(datetime.now()) + " Starting clustering...")
-    if algorithm.get() == "Algorytm K-Średnich":
-        df_seg_pca, centers, u, t = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
-                                                          calculate_indices)
-    else:
-        df_seg_pca, centers, u, t = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
-                                                          n_comps, prob_value, calculate_indices)
+    low = clusters_number
+    high = clusters_number
+    if clusters_number == -1 and calculate_indices:
+        split_cluster_number = clusters.get().split(str=":")
+        low = split_cluster_number[0]
+        high = split_cluster_number[1]
+    vts = []
+    for clusters_number in range(low, high + 1):
+        if algorithm.get() == "Algorytm K-Średnich":
+            df_seg_pca, centers, u, t = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
+                                                              calculate_indices)
+        else:
+            df_seg_pca, centers, u, t = find_clusters_c_means(scores_pca, clusters_number, m_value, min_tol, max_iter, df_x,
+                                                              n_comps, prob_value, calculate_indices)
 
-    coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
-    values_to_serialize = [df_seg_pca, centers, u, coords_assign_pca, t]
-    if calculate_indices:
-        dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
-        coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
-        entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
-        silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
+        coords_assign_pca = df_seg_pca.values[:, 9:len(df_seg_pca.values[0])]
+        values_to_serialize = [df_seg_pca, centers, u, coords_assign_pca, t]
+        vts = values_to_serialize
+        if calculate_indices:
+            dunn_value.config(text=str(df_seg_pca['Dunn'][0]))
+            coefficient_value.config(text=str(df_seg_pca['Coefficient'][0]))
+            entropy_value.config(text=str(df_seg_pca['Entropy'][0]))
+            silhouette_value.config(text=str(df_seg_pca['Silhouette'][0]))
 
-        with open('E:/Studia/Magisterka/Magisterka/Aplikacja/LurkaMusicClustering/pomiary/list-'
-                  + playlist_combobox.get().replace("/", "-") + ' alg-' + algorithm.get()
-                  + ' k' + str(clusters_number) + ' var' + str(min_var).replace(".", ",") + ' iter' + str(max_iter)
-                  + ' e' + str(min_tol).replace(".", ",") + ' m' + str(m_value).replace(".", ",") + ' prob'
-                  + str(prob_value).replace(".", ",") + ' rep0' + ' '
-                  + str(datetime.now().strftime("%Y-%m-%d %H-%M-%S")) + '.txt', 'w') as f:
-            f.write("Dunn Index Value: " + str(df_seg_pca['Dunn'][0]))
-            f.write("\nSilhouette Index Value: " + str(df_seg_pca['Silhouette'][0]))
-            f.write("\nCoefficient Value: " + str(df_seg_pca['Coefficient'][0]))
-            f.write("\nEntropy Value: " + str(df_seg_pca['Entropy'][0]))
+            with open('E:/Studia/Magisterka/Magisterka/Aplikacja/LurkaMusicClustering/pomiary/list-'
+                      + playlist_combobox.get().replace("/", "-") + ' alg-' + algorithm.get()
+                      + ' k' + str(clusters_number) + ' var' + str(min_var).replace(".", ",") + ' iter' + str(max_iter)
+                      + ' e' + str(min_tol).replace(".", ",") + ' m' + str(m_value).replace(".", ",") + ' prob'
+                      + str(prob_value).replace(".", ",") + ' rep0' + ' '
+                      + str(datetime.now().strftime("%Y-%m-%d %H-%M-%S")) + '.txt', 'w') as f:
+                f.write("Dunn Index Value: " + str(df_seg_pca['Dunn'][0]))
+                f.write("\nSilhouette Index Value: " + str(df_seg_pca['Silhouette'][0]))
+                f.write("\nCoefficient Value: " + str(df_seg_pca['Coefficient'][0]))
+                f.write("\nEntropy Value: " + str(df_seg_pca['Entropy'][0]))
 
     print_playlist_features()
-    return values_to_serialize
+    return vts
 
 
 def find_closest_index(center, centers, already_chosen):
@@ -239,6 +248,8 @@ def set_fields():
     clusters_number = 7
     if is_number(clusters.get()):
         clusters_number = int(clusters.get())
+    else:
+        clusters_number = -1
     m_value = 2
     if is_number(m.get()):
         m_value = float(m.get())
