@@ -82,18 +82,19 @@ def create_playlists(n_clusters, df, playlist_name, algorithm):
     global user_config
     sp = get_spotipy()
     for i in range(n_clusters):
-        result = sp.user_playlist_create(user_config['username'], algorithm + '::' +
-                                         playlist_name + '::' + str(i + 1) + ':: ' + str(datetime.now()), public=True,
-                                         collaborative=False, description='Lista utworzona ' + str(datetime.now())
-                                                                          + 'przez algorytm sztucznej inteligencji')
-        playlist_id = result['id']
         songs = list()
         for j in range(len(df['Cluster'])):
             if i in df['Cluster'][j]:
                 songs.append(df[playlist_name]['track_URI'][j])
-
-        if len(songs) > 100:
-            for j in range(0, len(songs), 100):
-                sp.playlist_add_items(playlist_id, songs[j:j + 100])
-        else:
-            sp.playlist_add_items(playlist_id, songs)
+        if len(songs) > 0:
+            result = sp.user_playlist_create(user_config['username'], algorithm + '::' +
+                                             playlist_name + '::' + str(i + 1) + ':: ' + str(datetime.now()),
+                                             public=True,
+                                             collaborative=False, description='Lista utworzona ' + str(datetime.now())
+                                                                              + 'przez algorytm sztucznej inteligencji')
+            playlist_id = result['id']
+            if len(songs) > 100:
+                for j in range(0, len(songs), 100):
+                    sp.playlist_add_items(playlist_id, songs[j:j + 100])
+            else:
+                sp.playlist_add_items(playlist_id, songs)
