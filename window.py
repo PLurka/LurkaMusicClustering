@@ -124,8 +124,8 @@ def perform_clusterization(calculate_indices):
     high = clusters_number
     if clusters_number == -1 and calculate_indices:
         split_cluster_number = clusters.get().split(str=":")
-        low = split_cluster_number[0]
-        high = split_cluster_number[1]
+        low = int(split_cluster_number[0])
+        high = int(split_cluster_number[1])
     vts = []
     for clusters_number in range(low, high + 1):
         if algorithm.get() == "Algorytm K-Średnich":
