@@ -1,14 +1,18 @@
 import spotipy
 import spotipy.util as util
 import yaml
+from datetime import datetime
+
+global token, user_config
 
 
 # returns sp
 def get_spotipy():
+    global token, user_config
     stream = open('config.yaml')
     user_config = yaml.load(stream, Loader=yaml.FullLoader)
     token = util.prompt_for_user_token(user_config['username'],
-                                       scope='playlist-read-private',
+                                       scope='playlist-read-private playlist-modify-private playlist-read-collaborative playlist-modify-public',
                                        client_id=user_config['client_id'],
                                        client_secret=user_config['client_secret'],
                                        redirect_uri=user_config['redirect_uri'])
@@ -17,6 +21,7 @@ def get_spotipy():
 
 
 def load_config():
+    global user_config
     stream = open('config.yaml')
     user_config = yaml.load(stream, Loader=yaml.FullLoader)
     return user_config
@@ -71,3 +76,24 @@ def get_features_for_playlist(df, username, uri, sp):
         row = [name, artist, track_uri, *feature_subset, playlist_name]
         df.loc[len(df.index)] = row
     return df
+
+
+def create_playlists(n_clusters, df, playlist_name):
+    global user_config
+    sp = get_spotipy()
+    for i in range(n_clusters):
+        result = sp.user_playlist_create(user_config['username'],
+                                         playlist_name + '::' + str(i + 1) + ':: ' + str(datetime.now()), public=True,
+                                         collaborative=False, description='Lista utworzona ' + str(datetime.now())
+                                                                          + 'przez algorytm sztucznej inteligencji')
+        playlist_id = result['id']
+        songs = list()
+        for j in range(len(df['Cluster'])):
+            if i in df['Cluster'][j]:
+                songs.append(df[playlist_name]['track_URI'][j])
+
+        if len(songs) > 100:
+            for j in range(0, len(songs), 100):
+                sp.playlist_add_items(playlist_id, songs[j:j + 100])
+        else:
+            sp.playlist_add_items(playlist_id, songs)

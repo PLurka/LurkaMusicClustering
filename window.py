@@ -14,13 +14,14 @@ from clustering import find_clusters_k_means, print_plot
 from clusters_number_optimization import find_optimal_cluster_number
 from dunn_index import find_distance
 from principal_component_analysis import get_scores_pca
-from spotify import get_spotipy, load_config, get_features_for_playlist
+from spotify import get_spotipy, load_config, get_features_for_playlist, create_playlists
 
 global algorithm, playlist_combobox, clusters, epsilon, iterations, m, min_prob, plot_type, x_var, y_var, \
     new_playlist_name, add_playlist_button, playlists, playlists_id, min_variance, selected_value, i, \
     spoti_playlists, user_config, spotipy_instance, df, scores_pca, n_comps, df_x, track_info, df_seg_pca, \
     plot_canvas, canvas_window, plot_ax, selected_cluster, clusters_number, min_tol, max_iter, m_value, prob_value, \
-    dunn_value, coefficient_value, entropy_value, silhouette_value, original_df, bootstrap_iter, bootstrap_ind, min_var
+    dunn_value, coefficient_value, entropy_value, silhouette_value, original_df, bootstrap_iter, bootstrap_ind, \
+    min_var, is_save_playlist
 
 
 def create_plot(window):
@@ -117,7 +118,7 @@ def perform_clusterization_with_indices():
 def perform_clusterization(calculate_indices):
     global scores_pca, n_comps, df_x, track_info, df_seg_pca, df, epsilon, iterations, min_variance, \
         clusters_number, m, min_prob, min_tol, max_iter, m_value, prob_value, coefficient_value, entropy_value, \
-        silhouette_value
+        silhouette_value, is_save_playlist
     print(str(datetime.now()) + " Starting clustering...")
     if algorithm.get() == "Algorytm K-Średnich":
         df_seg_pca, centers, u, t = find_clusters_k_means(clusters_number, scores_pca, df_x, n_comps, max_iter, min_tol,
@@ -173,7 +174,7 @@ def bootstrap():
     times_array = []
 
     for iterator in range(int(bootstrap_iter.get())):
-        for o in range(len(original_df)):
+        if iterator != 0:
             df[playlist_combobox.get()] = original_df.sample(n=len(original_df), replace=True)
         print("Bootstrap iteration no: " + str(iterator))
         values = perform_clusterization(False)
@@ -301,9 +302,15 @@ def optimize_clusters():
     clusters.insert(0, str(find_optimal_cluster_number(scores_pca, 30)))
 
 
+def save_as_playlists():
+    global playlist_combobox
+    df['Cluster'] = df_seg_pca['Cluster']
+    create_playlists(clusters_number, df, playlist_combobox.get())
+
+
 def create_parameters_frame(container, height, width):
     global algorithm, clusters, epsilon, iterations, m, min_prob, min_variance, playlist_combobox, dunn_value, \
-        coefficient_value, entropy_value, silhouette_value, bootstrap_iter, bootstrap_ind
+        coefficient_value, entropy_value, silhouette_value, bootstrap_iter, bootstrap_ind, is_save_playlist
     frame = create_frame(container, height, width)
 
     algorithm = create_combobox("Wybierz algorytm klasteryzacji:", frame,
@@ -391,6 +398,7 @@ def create_parameters_frame(container, height, width):
     button_frame.columnconfigure(0, weight=1)
     button_frame.columnconfigure(1, weight=1)
     button_frame.columnconfigure(2, weight=1)
+    button_frame.columnconfigure(3, weight=1)
 
     load_playlist_button = ttk.Button(
         button_frame,
@@ -408,10 +416,17 @@ def create_parameters_frame(container, height, width):
 
     optimize_clusters_button = ttk.Button(
         button_frame,
+        text="Zapisz jako listy",
+        command=save_as_playlists
+    )
+    optimize_clusters_button.grid(column=2, row=0)
+
+    optimize_clusters_button = ttk.Button(
+        button_frame,
         text="Optymalizuj klastry",
         command=optimize_clusters
     )
-    optimize_clusters_button.grid(column=2, row=0)
+    optimize_clusters_button.grid(column=3, row=0)
 
     button_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -426,10 +441,8 @@ def refresh_plot(event):
 
 
 def create_plot_frame(container, height, width):
-    global plot_type, x_var, y_var, plot_canvas, selected_cluster
+    global x_var, y_var, plot_canvas, selected_cluster
     frame = create_frame(container, height, width)
-    plot_type = create_combobox("Wybierz wykres:", frame, ["Rozkładu zmiennych", "Radar graph"], True)
-    plot_type.pack(fill=tk.X, padx=5, pady=5)
     x_var = create_combobox("Wybierz zmienną x wykresu:", frame,
                             ["Acousticness", "Danceability", "Energy", "Instrumentalness", "Liveness", "Loudness",
                              "Speechiness", "Valence", "Tempo"], True)
@@ -450,7 +463,8 @@ def create_plot_frame(container, height, width):
 
 
 def display_window():
-    global selected_value, i, playlists, playlists_id, spoti_playlists, user_config, spotipy_instance, df
+    global selected_value, i, playlists, playlists_id, spoti_playlists, user_config, spotipy_instance, df, is_save_playlist
+    is_save_playlist = False
     i = 0
     selected_value = []
     df = dict()
