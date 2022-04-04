@@ -78,11 +78,11 @@ def get_features_for_playlist(df, username, uri, sp):
     return df
 
 
-def create_playlists(n_clusters, df, playlist_name):
+def create_playlists(n_clusters, df, playlist_name, algorithm):
     global user_config
     sp = get_spotipy()
     for i in range(n_clusters):
-        result = sp.user_playlist_create(user_config['username'],
+        result = sp.user_playlist_create(user_config['username'], algorithm + '::' +
                                          playlist_name + '::' + str(i + 1) + ':: ' + str(datetime.now()), public=True,
                                          collaborative=False, description='Lista utworzona ' + str(datetime.now())
                                                                           + 'przez algorytm sztucznej inteligencji')

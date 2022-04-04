@@ -305,7 +305,10 @@ def optimize_clusters():
 def save_as_playlists():
     global playlist_combobox
     df['Cluster'] = df_seg_pca['Cluster']
-    create_playlists(clusters_number, df, playlist_combobox.get())
+    alg = 'K'
+    if algorithm.get() != "Algorytm K-Średnich":
+        alg = 'C'
+    create_playlists(clusters_number, df, playlist_combobox.get(), alg)
 
 
 def create_parameters_frame(container, height, width):
