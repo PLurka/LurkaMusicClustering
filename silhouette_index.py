@@ -17,7 +17,7 @@ def calc_sil_index(points, u):
 def calc_sil_for_point(point_index, d, intra, inter, u):
     bk = calc_inter_dist_for_point(point_index, d, inter, u)
     ak = calc_intra_dist_for_point(point_index, d, intra, u)
-    print(str(datetime.now()) + " Done calc_intra_dist_for_point!")
+    # print(str(datetime.now()) + " Done calc_intra_dist_for_point!")
     return (bk - ak) / max(bk, ak)
 
 
@@ -68,7 +68,7 @@ def calc_d_matrix(points, u):
             inter_dist_i = []
 
             def calculate(j, k):
-                if j == k:
+                if j <= k or ((len(d) > j) and len(d[j]) > k):
                     djk = 0
                 else:
                     djk = find_distance(points[j], points[k])
@@ -97,5 +97,12 @@ def calc_d_matrix(points, u):
         inter_dist_arr.append(inter_dist)
 
     Parallel(n_jobs=1, require='sharedmem')(delayed(has_shareable_memory)(calculate(i)) for i in range(len(u)))
+    for i in range(len(u)):
+        for s in range(len(u)):
+            for k in range(len(points)):
+                for j in range(len(points)):
+                    if j < k:
+                        d[j][k] = d[k][j]
+
     print(str(datetime.now()) + " Done calc_d_matrix!")
     return d, intra_dist, inter_dist_arr
