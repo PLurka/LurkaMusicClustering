@@ -68,14 +68,15 @@ def calc_d_matrix(points, u):
             inter_dist_i = []
 
             def calculate(j, k):
-                if j <= k or ((len(d) > j) and len(d[j]) > k):
-                    djk = 0
-                else:
-                    djk = find_distance(points[j], points[k])
-                if len(d) <= j:
-                    d.append([djk])
-                else:
-                    d[j].append(djk)
+                if not (j < k or ((len(d) > j) and len(d[j]) > k)):
+                    if j == k:
+                        djk = 0
+                    else:
+                        djk = find_distance(points[j], points[k])
+                    if len(d) <= j:
+                        d.append([djk])
+                    else:
+                        d[j].append(djk)
                 if i == s:
                     if len(intra_dist_i) <= j:
                         intra_dist_i.append([u[i][j] * u[i][k]])
@@ -102,7 +103,7 @@ def calc_d_matrix(points, u):
             for k in range(len(points)):
                 for j in range(len(points)):
                     if j < k:
-                        d[j][k] = d[k][j]
+                        d[j].append(d[k][j])
 
     print(str(datetime.now()) + " Done calc_d_matrix!")
     return d, intra_dist, inter_dist_arr
