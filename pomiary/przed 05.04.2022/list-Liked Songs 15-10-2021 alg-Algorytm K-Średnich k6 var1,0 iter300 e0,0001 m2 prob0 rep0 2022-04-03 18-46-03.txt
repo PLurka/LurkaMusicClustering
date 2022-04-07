@@ -1,0 +1,4 @@
+Dunn Index Value: 0.023563729809426972
+Silhouette Index Value: 0.1625730904574653
+Coefficient Value: 1
+Entropy Value: 0
