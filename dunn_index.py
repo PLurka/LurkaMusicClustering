@@ -61,7 +61,7 @@ def centroid_average_linkage_distance(cluster_1_points, cluster_2_points, centro
 
 # the distance between two furthest observations within the same cluster:
 def complete_diameter_distance(cluster_points, centroid):
-    if len(cluster_points) == 1:
+    if len(cluster_points) <= 1:
         return 0
     return max(get_all_distances(cluster_points, cluster_points))
 
