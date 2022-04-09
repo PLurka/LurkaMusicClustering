@@ -2,9 +2,10 @@ import time
 import tkinter as tk
 from cmath import inf
 from datetime import datetime
-from statistics import variance, mean
+from statistics import variance, mean, stdev
 from tkinter import ttk
 
+import numpy
 import pandas as pd
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
@@ -204,21 +205,26 @@ def bootstrap():
         df[playlist_combobox.get()] = original_df.copy()
 
     # centra
-    cluster_variances = []
+    cluster_stdevs = []
     for j in range(len(centers_array[0])):
         # wymiary
-        dimension_variances = []
+        dimension_stdevs = []
         for k in range(len(centers_array[0][0])):
             # iteracje
             dimension_values = []
             for n in range(len(centers_array)):
                 dimension_values.append(centers_array[n][j][k])
-            dimension_variance = variance(dimension_values)
-            dimension_variances.append(dimension_variance)
-        cluster_variances.append(dimension_variances)
+            dimension_stdev = stdev(dimension_values)
+            dimension_stdevs.append(dimension_stdev)
+        cluster_stdevs.append(dimension_stdevs)
 
-    cluster_variances_string = str(cluster_variances).replace("],", "],\n")
-    cluster_variances_string += "\n"
+    record = numpy.array(centers_array)
+
+    cluster_stdevs_string = "Standard deviations:\n" + str(cluster_stdevs).replace("],", "],\n")
+    cluster_stdevs_string += "\n\n"
+    cluster_stdevs_string += "Centers mean:\n"
+    cluster_stdevs_string += str(record.mean(axis=0)).replace("],", "],\n")
+    cluster_stdevs_string += "\n\n"
 
     with open('E:/Studia/Magisterka/Magisterka/Aplikacja/LurkaMusicClustering/pomiary/list-'
               + playlist_combobox.get().replace("/", "-") + ' alg-' + algorithm.get()
@@ -226,7 +232,7 @@ def bootstrap():
               + ' e' + str(min_tol).replace(".", ",") + ' m' + str(m_value).replace(".", ",") + ' prob'
               + str(prob_value).replace(".", ",") + ' rep' + bootstrap_iter.get() + ' '
               + str(datetime.now().strftime("%Y-%m-%d %H-%M-%S")) + '.txt', 'w') as f:
-        f.write(cluster_variances_string)
+        f.write(cluster_stdevs_string)
         f.write("Avg Time: " + str(mean(times_array)))
 
 
